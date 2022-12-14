@@ -28,20 +28,26 @@ def write_file(maze_list, path):
         f.writelines(lines)
 
 
-def solve_maze(maze):
+def find_point(maze, point):
     HEIGHT, LENGTH = len(maze), len(maze[1])
 
     start = (0,0)
     for r in range(HEIGHT):
         for c in range(LENGTH):
-            if maze[r][c] == 'O':
+            if maze[r][c] == point:
                 start = (r,c)
                 break
         else: continue
         break
     else:
-        print('No starting point')
+        print('No point')
         return None
+    return start
+
+
+def solve_maze(maze):
+    HEIGHT, LENGTH = len(maze), len(maze[1])
+    start = find_point(maze, 'O')
 
     queue = deque()
     directions = [[0,1], [0,-1], [1,0], [-1,0]]
@@ -70,7 +76,7 @@ def solve_maze(maze):
     return coord[2], visited
 
 
-def draw_path(maze, visited_fields):
+def mark_visited_path(maze, visited_fields):
     HEIGHT, LENGTH = len(maze), len(maze[1])
     maze_after = [['']*LENGTH for i in range(HEIGHT)]
 
@@ -84,11 +90,66 @@ def draw_path(maze, visited_fields):
     return maze_after
 
 
+def depth_first_solve(maze):
+    """
+    Now we go from finish to start and use only fields previously visited.
+
+
+    """
+
+    HEIGHT, LENGTH = len(maze), len(maze[1])
+    start = find_point(maze, 'F')
+
+    queue_prim = deque()
+    queue_sec = deque()
+    directions = [[0, 1], [0, -1], [1, 0], [-1, 0]]
+
+    'we add point + distance from start'
+    queue_sec.appendleft((start[0], start[1], 0))
+
+    'array of visited coordinates'
+    visited = [[False] * LENGTH for i in range(HEIGHT)]
+
+    while len(queue_sec) != 0:
+        another_branch_beginning = queue_sec.pop()
+        queue_prim.append(another_branch_beginning)
+
+        while len(queue_prim) != 0:
+            coord = queue_prim.pop()
+
+            visited[coord[0]][coord[1]] = True
+
+            if maze[coord[0]][coord[1]] == 'O':
+                print(f'Depth-first finished, shortest path is {coord[2]} steps')
+                return visited
+
+            first_branch_appended = 0
+            for dir in directions:
+                new_r, new_c = coord[0] + dir[0], coord[1] + dir[1]
+                if (new_r < 0 or new_r >= HEIGHT or new_c < 0 or new_c >= LENGTH or maze[new_r][new_c] == 'X' or
+                        visited[new_r][new_c] or maze[new_r][new_c] == ' '):
+                    continue
+                if first_branch_appended == 0:
+                    queue_prim.append((new_r, new_c, coord[2] + 1))
+                    first_branch_appended = 1
+                else:
+                    queue_sec.append((new_r, new_c, coord[2] + 1))
+            # first_branch_appended = 0
+
+    print(f'Didn´t reach the finish. Furthest path was {coord[2]} steps')
+    return visited
+
+
 
 maze = read_file("maze.txt")
 shortest_path_length, visited_fields = solve_maze(maze)
 # print(draw_path(maze, visited_fields))
-write_file(draw_path(maze, visited_fields), "maze_solved.txt")
+maze_after_breadth_first = mark_visited_path(maze, visited_fields)
+write_file(maze_after_breadth_first, "maze_solved_breadt.txt")
+
+visited_fields_depth = depth_first_solve(maze_after_breadth_first)
+maze_after_depth_first = mark_visited_path(maze, visited_fields_depth)
+write_file(maze_after_depth_first, "maze_solved_depth.txt")
 
 
 
