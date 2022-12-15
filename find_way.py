@@ -1,18 +1,21 @@
 """
-Find shortest path through the maze by breadth-first searching.
+Find shortest path through the maze by breadth-first searching + backtracking.
 O = start poing
 F = finish
 X = wall
 ' ' = route
 """
+
 import copy
 from collections import deque
 
 
 def read_file(path):
-    """Read a maze text file and split out each character. Return
-       a 2-dimensional list where the first dimension is rows and
-       the second is columns."""
+    """
+    Read a maze text file and split out each character. Return
+    a 2-dimensional list where the first dimension is rows and
+    the second is columns.
+    """
     maze_list = []
     with open(path) as f:
         for line in f.read().splitlines():
@@ -21,7 +24,7 @@ def read_file(path):
 
 
 def write_file(maze_list, path):
-    """Create file with path through maze"""
+    """Write list of rows to file"""
     lines = ["".join(row)+'\n' for row in maze_list]
 
     with open(path, 'w') as f:
@@ -29,6 +32,7 @@ def write_file(maze_list, path):
 
 
 def find_point(maze, point):
+    """ Return coordinates of given point(character) """
     HEIGHT, LENGTH = len(maze), len(maze[1])
 
     start = (0,0)
@@ -46,6 +50,8 @@ def find_point(maze, point):
 
 
 def solve_maze(maze):
+    """ Breadt-first search from start to finish. Paths are written to 'visited' list as distance numbers """
+
     HEIGHT, LENGTH = len(maze), len(maze[1])
     start = find_point(maze, 'O')
 
@@ -77,6 +83,8 @@ def solve_maze(maze):
 
 
 def mark_visited_path(maze, visited_fields):
+    """ Write numbers from visited fields (distance) to original maze. For backtracking. """
+
     HEIGHT, LENGTH = len(maze), len(maze[1])
     maze_after = copy.deepcopy(maze)
 
@@ -87,34 +95,33 @@ def mark_visited_path(maze, visited_fields):
                 maze_after[r][c] = str(visited_fields[r][c])
             if maze_after[r][c] == 'O':
                 maze_after[r][c] = '0'
-        else: continue
-        break
+        else:
+            continue
     return maze_after
 
 
-def point_visited_path(maze):
+def replace_numbers_by_points(maze):
+    """ Looks nicer """
     HEIGHT, LENGTH = len(maze), len(maze[1])
 
     for r in range(HEIGHT):
         for c in range(LENGTH):
             if maze[r][c] != ' ' and maze[r][c] != 'F' and maze[r][c] != '0' and maze[r][c] != 'X':
                 maze[r][c] = '.'
-        else: continue
-        break
+        else:
+            continue
     return maze
 
 
 def backtrack(maze, path_length):
-    """
-    Breadth first search from finish to start adding every node with lower mark to path.
-    """
+    """ Breadth first search from finish to start going only by nodes with decreasing numbers. """
     HEIGHT, LENGTH = len(maze), len(maze[1])
     start = find_point(maze, 'F')
 
     queue = deque()
     directions = [[0,1], [0,-1], [1,0], [-1,0]]
 
-    'we add point + distance from start'
+    'we add coordinates + distance from start'
     queue.appendleft((start[0], start[1], path_length))
 
     'array of visited coordinates'
@@ -125,40 +132,25 @@ def backtrack(maze, path_length):
         visited[coord[0]][coord[1]] = coord[2]
 
         if maze[coord[0]][coord[1]] == '0':
-            print(f'Finished, got back to step {coord[2]}')
-            print('VISITED BACKTR', visited)
             return visited
 
         for dir in directions:
             new_r, new_c = coord[0]+dir[0], coord[1]+dir[1]
             if (new_r < 0 or new_r >= HEIGHT or new_c < 0 or new_c >= LENGTH or maze[new_r][new_c] == 'X' or maze[new_r][new_c] == 'O' or
                  maze[new_r][new_c] == ' ' or visited[new_r][new_c] != False or int(maze[new_r][new_c]) >= coord[2]):
-
                 continue
             queue.appendleft((new_r,new_c,coord[2]-1))
 
-    print(f'Didn´t reach the finish. Got back to step {coord[2]}')
-    print('VISITED BACKTR', visited)
     return visited
-
-
 
 
 
 maze = read_file("maze.txt")
 shortest_path_length, visited_fields = solve_maze(maze)
-print('visited_fields',visited_fields)
-maze_after_breadth_first = mark_visited_path(maze, visited_fields)
-write_file(maze_after_breadth_first, "maze_solved_breadt.txt")
-
-track = backtrack(maze_after_breadth_first, shortest_path_length)
-track_marked = mark_visited_path(maze, track)
-write_file(track_marked, "maze_backtracked.txt")
-write_file(point_visited_path(track_marked), "maze_maze_backtracked_points.txt")
-
-# visited_fields_depth = depth_first_solve(maze_after_breadth_first, shortest_path_length)
-# maze_after_depth_first = mark_visited_path(maze, visited_fields_depth)
-# write_file(maze_after_depth_first, "maze_solved_depth.txt")
+maze_with_paths = mark_visited_path(maze, visited_fields)
+shortest_path = backtrack(maze_with_paths, shortest_path_length)
+shortest_path_in_maze = mark_visited_path(maze, shortest_path)
+write_file(replace_numbers_by_points(shortest_path_in_maze), "maze_points.txt")
 
 
 
